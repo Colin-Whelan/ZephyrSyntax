@@ -1,0 +1,349 @@
+%YAML 1.2
+---
+name: Zephyr
+file_extensions:
+  - z
+  - zph
+  - zephyr
+scope: text.html.zph
+
+
+variables:
+  integers: (?:\B[-+])?\b[0-9]+
+  floats: '{{integers}}\.([0-9]+)?'
+
+  operators_arithmetic: '\+\+|\+|-|\*\*|\*|\/|%'
+  operators_assignment: '\?\?=|\|\|=|\|=|\&\&=|\&=|\^=|>>>=|>>=|<<=|\*\*=|\*=|%=|\/=|-=|\+=|='
+  operators_comparison: '<=|<|===|!==|!=|==|>=|>'
+  operators_logical: '&&|\|\||!|\bnot\b|\bor\b|\band\b'
+  operators_bitwise: '>>>|>>|<<|~|\^|\|&'
+  operators_ternary: '\?|:'
+
+  keywords_boolean: true|false
+  keywords_other: null|undefined
+  keywords_conditional: if|elif|else|endif
+  keywords_template: extends|import|include|from|as|block|endblock
+  keywords_reserved: |-
+    (?x:
+      for|in|endfor|
+      asyncEach|endeach|asyncAll|endall|
+      macro|endmacro|
+      set|endset|
+      raw|endraw|
+      verbatim|
+      filter|endfilter|
+      call|endcall|
+      with|context
+    )
+  names: '\b[A-Za-z_]+[A-Za-z_0-9]*\b'
+
+
+contexts:
+  main:
+    - match: ''
+      push: scope:text.html.basic
+      with_prototype:
+
+        # Comment Block
+        - match: '{\*-?'
+          scope: punctuation.definition.comment.begin.zph
+          push:
+            - meta_scope: comment.block.zph
+            - match: '-?\*}'
+              scope: punctuation.definition.comment.end.zph
+              pop: true
+
+        # Statement Block
+        - match: '\{%-?'
+          scope: punctuation.statement.begin.zph
+          push:
+            - meta_scope: meta.statement.zph
+            - match: '-?%\}'
+              scope: punctuation.statement.end.zph
+              pop: true
+            - include: zephyr-strings
+            - include: zephyr-punctuation
+            - include: zephyr-parentheses
+            - include: zephyr-numeric
+            - include: zephyr-operators
+            - include: zephyr-keywords
+            - include: zephyr-filters
+            - include: zephyr-macros
+            - include: zephyr-variables
+
+        # Expression Block
+        - match: '\{-?'        
+          scope: punctuation.expression.begin.zph
+          push:
+            - meta_scope: meta.expression.zph
+            - match: '-?\}'
+              scope: punctuation.expression.end.zph
+              pop: true
+            - include: zephyr-strings
+            - include: zephyr-punctuation
+            - include: zephyr-parentheses
+            - include: zephyr-numeric
+            - include: zephyr-operators
+            - include: zephyr-keywords
+            - include: zephyr-filters
+            - include: zephyr-macros
+            - include: zephyr-variables
+
+
+
+  # zephyr Includes
+  ## Punctuation
+  zephyr-punctuation:
+    - include: zephyr-dots
+    - include: zephyr-commas
+    - include: zephyr-colons
+    - include: zephyr-semicolons
+    - include: zephyr-pipe
+
+  zephyr-dots:
+    - match: '\.'
+      scope: punctuation.accessor.zph
+
+  zephyr-commas:
+    - match: ','
+      scope: punctuation.separator.zph
+
+  zephyr-colons:
+    - match: '\:'
+      scope: punctuation.separator.zph
+
+  zephyr-semicolons:
+    - match: ';'
+      scope: punctuation.terminator.zph
+
+  zephyr-pipe:
+    - match: '\|'
+      scope: punctuation.accessor.zph
+
+  ## Operators
+  zephyr-operators:
+    - include: zephyr-bitwise-operators
+    - include: zephyr-comparison-operators
+    - include: zephyr-assignment-operators
+    - include: zephyr-arithmetic-operators
+    - include: zephyr-logical-operators
+    - include: zephyr-ternary-operators
+
+  zephyr-arithmetic-operators:
+    - match: '{{operators_arithmetic}}'
+      scope: keyword.operator.arithmetic.zph
+
+  zephyr-assignment-operators:
+    - match: '{{operators_assignment}}'
+      scope: keyword.operator.assignment.zph
+
+  zephyr-comparison-operators:
+    - match: '{{operators_comparison}}'
+      scope: keyword.operator.comparison.zph
+
+  zephyr-logical-operators:
+    - match: '{{operators_logical}}'
+      scope: keyword.operator.logical.zph
+
+  zephyr-bitwise-operators:
+    - match: '{{operators_bitwise}}'
+      scope: keyword.operator.bitwise.zph
+
+  zephyr-ternary-operators:
+    - match: '{{operators_ternary}}'
+      scope: keyword.operator.ternary.zph
+
+  ## Parentheses
+  zephyr-parentheses:
+    - include: zephyr-curly-brackets
+    - include: zephyr-square-brackets
+
+  zephyr-curly-brackets:
+    - match: \{
+      scope: punctuation.section.braces.begin.zph
+      push:
+        - meta_scope: meta.object-literal.zph # meta.braces.zph
+        - match: \}
+          scope: punctuation.section.braces.end.zph
+          pop: true
+        - include: zephyr-keywords-boolean
+        - include: zephyr-keywords-other
+        - include: zephyr-strings
+        - include: zephyr-punctuation
+        - include: zephyr-parentheses
+        - include: zephyr-numeric
+        - include: zephyr-operators
+        - include: zephyr-variables
+
+  zephyr-square-brackets:
+    - match: \[
+      scope: punctuation.section.brackets.begin.zph
+      push:
+        - meta_scope: meta.sequence.zph # meta.brackets.zph
+        - match: \]
+          scope: punctuation.section.brackets.end.zph
+          pop: true
+        - include: zephyr-keywords-boolean
+        - include: zephyr-keywords-other
+        - include: zephyr-strings
+        - include: zephyr-punctuation
+        - include: zephyr-parentheses
+        - include: zephyr-numeric
+        - include: zephyr-operators
+        - include: zephyr-variables
+
+  ## Strings
+  zephyr-strings:
+    - match: \'
+      scope: punctuation.definition.string.begin.zph
+      push:
+        - meta_scope: string.quoted.single.zph
+        - match: \'
+          scope: punctuation.definition.string.end.zph
+          pop: true
+    - match: \"
+      scope: punctuation.definition.string.begin.zph
+      push:
+        - meta_scope: string.quoted.double.zph
+        - match: \"
+          scope: punctuation.definition.string.end.zph
+          pop: true
+
+  ## Numeric
+  zephyr-numeric:
+    - include: zephyr-floats
+    - include: zephyr-integers
+
+  zephyr-integers:
+    - match: '{{integers}}'
+      scope: constant.numeric.integer.zph
+
+  zephyr-floats:
+    - match: '{{floats}}'
+      scope: constant.numeric.float.zph
+
+  ## Keywords
+  zephyr-keywords:
+    - include: zephyr-keywords-conditional
+    - include: zephyr-keywords-template
+    - include: zephyr-keywords-reserved
+    - include: zephyr-keywords-boolean
+    - include: zephyr-keywords-other
+
+  zephyr-keywords-conditional:
+    - match: '\b({{keywords_conditional}})\b'
+      scope: keyword.control.conditional.zph
+
+  zephyr-keywords-template:
+    - match: '\b({{keywords_template}})\b'
+      scope: keyword.control.import.zph
+
+  zephyr-keywords-reserved:
+    - match: '\b({{keywords_reserved}})\b'
+      scope: keyword.control.zph
+
+  zephyr-keywords-boolean:
+    - match: '\b({{keywords_boolean}})\b'
+      scope: constant.language.zph
+
+  zephyr-keywords-other:
+    - match: '\b({{keywords_other}})\b'
+      scope: constant.language.zph
+
+  ## Filter
+  zephyr-filters:
+    - include: zephyr-inline-filter
+    - include: zephyr-block-filter
+
+  zephyr-inline-filter:
+    # With parentheses
+    - match: '(?<=\|)((\s+)?{{names}}\()'
+      scope: support.class.begin.zph
+      push:
+        - match: '\)'
+          scope: support.class.end.zph
+          pop: true
+        - include: zephyr-punctuation
+        - include: zephyr-operators
+        - include: zephyr-strings
+        - include: zephyr-numeric
+        - include: zephyr-keywords-boolean
+        - include: zephyr-keywords-other
+        - include: zephyr-variables
+    # Wuthout parentheses
+    - match: '(?<=\|)((\s+)?{{names}})'
+      scope: support.class.zph
+
+  zephyr-block-filter:
+    - match: (?<=filter)(\s+)({{names}})(\()?
+      scope: support.class.zph
+      push:
+        - match: '(\))?(\s+)?(?=%\})'
+          scope: support.class.zph
+          pop: true
+        - include: zephyr-punctuation
+        - include: zephyr-operators
+        - include: zephyr-strings
+        - include: zephyr-numeric
+        - include: zephyr-keywords-boolean
+        - include: zephyr-keywords-other
+        - include: zephyr-variables
+
+  ## Macros
+  zephyr-macros:
+    - include: zephyr-macro-declaration
+    - include: zephyr-macro-invocation
+
+  zephyr-macro-declaration:
+    - match: '(?<=macro)\s+({{names}})(\()'
+      scope: entity.name.function.zph
+      push:
+        - meta_content_scope: variable.parameter.zph
+        - match: (\))
+          scope: entity.name.function.zph
+          pop: true
+        - include: zephyr-punctuation
+        - include: zephyr-operators
+        - include: zephyr-strings
+
+  zephyr-macro-invocation:
+    - match: '({{names}})(\()'
+      scope: entity.name.function.zph meta.function-call.begin.zph
+      push:
+        - meta_content_scope: meta.function.parameters.zph
+        - match: (\))
+          scope: entity.name.function.zph meta.function-call.end.zph
+          pop: true
+        - include: zephyr-strings
+        - include: zephyr-punctuation
+        - include: zephyr-parentheses
+        - include: zephyr-numeric
+        - include: zephyr-operators
+        - include: zephyr-keywords-boolean
+        - include: zephyr-keywords-other
+        - include: zephyr-variables
+
+  ## Variables
+  zephyr-variables:
+    # Object methods
+    - match: '(?<=[\]\w\.])({{names}})(\()'
+      scope: entity.name.function.zph meta.function-call.begin.zph
+      push:
+        - match: (\))
+          scope: entity.name.function.zph meta.function-call.end.zph
+          pop: true
+        - include: zephyr-strings
+        - include: zephyr-punctuation
+        - include: zephyr-parentheses
+        - include: zephyr-numeric
+        - include: zephyr-operators
+        - include: zephyr-keywords-boolean
+        - include: zephyr-keywords-other
+        - include: zephyr-variables
+    #  Object properties
+    - match: '(?<=[\]\w\.])({{names}})'
+      # scope: variable.other.member.zph
+      scope: variable.function.zph
+    # Variables
+    - match: '{{names}}'
+      scope: variable.other.readwrite.zph
